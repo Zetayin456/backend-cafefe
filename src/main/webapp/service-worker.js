@@ -1,5 +1,6 @@
-const CACHE_NAME = "cafefe-pos-shell-v1";
+const CACHE_NAME = "cafefe-pos-shell-v2";
 const APP_SHELL = [
+    "./index.xhtml",
     "./index.html",
     "./manifest.json",
     "./styles/principal.css",
@@ -49,13 +50,13 @@ self.addEventListener("fetch", (event) => {
         event.respondWith((async () => {
             try {
                 const response = await fetch(request);
-                if (response.ok && url.pathname.endsWith("/index.html")) {
+                if (response.ok && (url.pathname.endsWith("/index.xhtml") || url.pathname.endsWith("/index.html"))) {
                     const cache = await caches.open(CACHE_NAME);
                     await cache.put(request, response.clone());
                 }
                 return response;
             } catch {
-                return await caches.match("./index.html")
+                return await caches.match("./index.xhtml")
                         ?? new Response("Cafefe POS está sin conexión. Abre el panel cuando la conexión vuelva.", {
                             status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" }
                         });
