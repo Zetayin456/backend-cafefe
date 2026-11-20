@@ -1,0 +1,10 @@
+.git
+.vscode
+target
+test
+*.txt
+*.sql
+*.war
+*.jar
+Dockerfile
+.dockerignore
