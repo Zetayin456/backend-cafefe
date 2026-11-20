@@ -8,6 +8,11 @@ RUN apt-get update \
 
 USER usuario
 WORKDIR /home/usuario
+ENV PG_HOST=localhost \
+    PG_PORT=5432 \
+    PG_DB=pos_ppi115 \
+    PG_USER=postgres \
+    PG_PASS=postgrespassword
 COPY --chown=usuario:usuario src/main/liberty/config/server.xml /tmp/server.xml
 RUN curl -fsSL https://public.dhe.ibm.com/ibmdl/export/pub/software/openliberty/runtime/release/24.0.0.3/openliberty-24.0.0.3.zip -o /tmp/openliberty.zip \
     && unzip -q /tmp/openliberty.zip -d /home/usuario \
