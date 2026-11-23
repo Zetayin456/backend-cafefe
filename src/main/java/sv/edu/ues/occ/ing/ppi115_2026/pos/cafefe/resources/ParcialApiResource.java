@@ -69,7 +69,7 @@ public class ParcialApiResource {
             if (comments != null && !comments.isBlank()) note += "; " + comments;
             // No quantity column exists in DDL: persist one order_product row per unit.
             for (int unit = 0; unit < requested.cantidad; unit++) {
-                OrdenProducto op = new OrdenProducto(UUID.randomUUID()); op.setIdOrden(order); op.setIdProducto(product); op.setPrecio(product.getPrecioSugerido()); op.setObservaciones(note); em.persist(op);
+                OrdenProducto op = new OrdenProducto(UUID.randomUUID()); op.setIdOrden(order); op.setIdProducto(product); op.setPrecio(product.getPrecioSugerido()); op.setObservaciones(note); em.persist(op); if (order.getOrdenProductoList() == null) order.setOrdenProductoList(new ArrayList<>()); order.getOrdenProductoList().add(op); if (order.getOrdenProductoList() == null) order.setOrdenProductoList(new ArrayList<>()); order.getOrdenProductoList().add(op); if (order.getOrdenProductoList() == null) order.setOrdenProductoList(new ArrayList<>()); order.getOrdenProductoList().add(op);
                 total = total.add(product.getPrecioSugerido());
                 lines.add(Map.of("idOrdenProducto", op.getIdOrdenProducto(), "idProducto", product.getIdProducto(), "nombre", product.getNombre() == null ? "" : product.getNombre(), "cantidad", 1, "precio", product.getPrecioSugerido(), "observaciones", note));
             }
@@ -80,8 +80,23 @@ public class ParcialApiResource {
     /** An order is pending while it has no fully paid invoice linked to its order_product rows. */
     @GET @Path("orden/pendientes")
     public List<Map<String,Object>> pendientes() {
-        List<Orden> orders = em.createQuery("SELECT DISTINCT o FROM Orden o LEFT JOIN FETCH o.ordenProductoList op LEFT JOIN FETCH op.idProducto WHERE NOT EXISTS (SELECT fp FROM FacturaOrdenProducto fp JOIN fp.idFactura f JOIN f.pagoList p WHERE fp.idOrdenProducto.idOrden=o AND p.estado='PAGADO') ORDER BY o.fechaCreacion", Orden.class).getResultList();
+        List<Orden> orders = em.createQuery("SELECT DISTINCT o FROM Orden o LEFT JOIN FETCH o.ordenProductoList op LEFT JOIN FETCH op.idProducto WHERE NOT EXISTS (SELECT fp FROM FacturaOrdenProducto fp JOIN fp.idFactura f JOIN f.pagoList p WHERE fp.idOrdenProducto.idOrden=o AND p.estado='PAGADO') ORDER BY o.fechaCreacion", Orden.class).setHint("eclipselink.refresh", "true").getResultList();
         return orders.stream().map(this::ordenDto).toList();
+    }
+
+    @PUT @Path("orden/{id}/despachar")
+    public Response despacharOrden(@PathParam("id") UUID id) {
+        Orden order = em.find(Orden.class, id);
+        if (order == null) return error(404, "Orden no encontrada");
+        List<OrdenProducto> lines = em.createQuery("SELECT op FROM OrdenProducto op WHERE op.idOrden.idOrden = :id", OrdenProducto.class)
+                .setParameter("id", id).getResultList();
+        for (OrdenProducto op : lines) {
+            String obs = op.getObservaciones() == null ? "" : op.getObservaciones();
+            if (!obs.contains("[DESPACHADA]")) {
+                op.setObservaciones(obs.isBlank() ? "[DESPACHADA]" : obs + " [DESPACHADA]");
+            }
+        }
+        return Response.ok(Map.of("idOrden", id, "estado", "DESPACHADA")).build();
     }
 
     /** Create the invoice/ticket and link every line of the order. */
@@ -143,10 +158,14 @@ public class ParcialApiResource {
         Map<String,Object> out = new LinkedHashMap<>(); out.put("idPago", payment.getIdPago()); out.put("idFactura", f.getIdFactura()); out.put("estado", payment.getEstado()); out.put("total", paid); out.put("detalles", detailDtos); return Response.status(201).entity(out).build();
     }
 
+        private boolean isDespachada(Orden o) {
+        return o.getOrdenProductoList() != null && o.getOrdenProductoList().stream()
+                .anyMatch(op -> op.getObservaciones() != null && op.getObservaciones().contains("[DESPACHADA]"));
+    }
     private Map<String,Object> ordenDto(Orden o) {
         List<Map<String,Object>> lines = o.getOrdenProductoList().stream().map(op -> Map.<String,Object>of("idOrdenProducto", op.getIdOrdenProducto(), "idProducto", op.getIdProducto().getIdProducto(), "nombre", op.getIdProducto().getNombre() == null ? "" : op.getIdProducto().getNombre(), "cantidad", 1, "precio", op.getPrecio(), "observaciones", op.getObservaciones() == null ? "" : op.getObservaciones())).toList();
         BigDecimal total = o.getOrdenProductoList().stream().map(OrdenProducto::getPrecio).reduce(BigDecimal.ZERO, BigDecimal::add);
-        Map<String,Object> out = new LinkedHashMap<>(); out.put("idOrden", o.getIdOrden()); out.put("fechaCreacion", o.getFechaCreacion()); out.put("estado", "PENDIENTE_COCINA"); out.put("productos", lines); out.put("total", total); return out;
+        Map<String,Object> out = new LinkedHashMap<>(); out.put("idOrden", o.getIdOrden()); out.put("fechaCreacion", o.getFechaCreacion()); out.put("estado", (isDespachada(o) ? "DESPACHADA" : "PENDIENTE_COCINA")); out.put("productos", lines); out.put("total", total); return out;
     }
     private Map<String,Object> ticket(Factura f, Orden order, List<OrdenProducto> lines, BigDecimal total) {
         List<Map<String,Object>> items = lines.stream().map(op -> Map.<String,Object>of("idProducto", op.getIdProducto().getIdProducto(), "producto", op.getIdProducto().getNombre() == null ? "" : op.getIdProducto().getNombre(), "cantidad", 1, "precio", op.getPrecio(), "observaciones", op.getObservaciones() == null ? "" : op.getObservaciones())).toList();
