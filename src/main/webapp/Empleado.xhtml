@@ -117,6 +117,11 @@
                                      paginatorPosition="bottom"
                                      emptyMessage="No hay empleados registrados.">
 
+                            <p:column headerText="UUID"
+                                      style="min-width: 250px;">
+                                <h:outputText value="#{e.idEmpleado}" />
+                            </p:column>
+
                             <p:column headerText="Nombre Completo">
                                 <h:outputText value="#{e.nombre} #{e.apellido}"
                                               style="font-weight: bold;" />
