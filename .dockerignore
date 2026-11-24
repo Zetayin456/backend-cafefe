@@ -8,3 +8,4 @@ test
 *.jar
 Dockerfile
 .dockerignore
+src/main/liberty/config/server.env

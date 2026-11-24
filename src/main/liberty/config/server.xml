@@ -11,6 +11,10 @@
         <fileset dir="${shared.resource.dir}" includes="postgresql.jar" />
     </library>
 
+    <library id="PrimeFacesLib">
+        <fileset dir="${shared.resource.dir}" includes="primefaces-14.0.0-jakarta.jar" />
+    </library>
+
     <dataSource id="pgdb" jndiName="jdbc/pgdb">
         <jdbcDriver libraryRef="PostgreSQLDriver" />
         <properties.postgresql
@@ -20,4 +24,8 @@
             user="${env.PG_USER}"
             password="${env.PG_PASS}" />
     </dataSource>
+
+    <webApplication id="cafefe" location="cafefe.war" contextRoot="/cafefe">
+        <classloader commonLibraryRef="PrimeFacesLib" />
+    </webApplication>
 </server>

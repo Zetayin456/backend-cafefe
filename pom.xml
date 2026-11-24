@@ -21,6 +21,7 @@
             <artifactId>primefaces</artifactId>
             <version>14.0.0</version>
             <classifier>jakarta</classifier>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>

@@ -19,6 +19,7 @@ RUN curl -fsSL https://public.dhe.ibm.com/ibmdl/export/pub/software/openliberty/
     && rm /tmp/openliberty.zip \
     && mkdir -p /home/usuario/wlp/usr/servers/cafefe/dropins /home/usuario/wlp/usr/shared/resources \
     && curl -fsSL https://jdbc.postgresql.org/download/postgresql-42.7.4.jar -o /home/usuario/wlp/usr/shared/resources/postgresql.jar \
+    && curl -fsSL https://repo1.maven.org/maven2/org/primefaces/primefaces/14.0.0/primefaces-14.0.0-jakarta.jar -o /home/usuario/wlp/usr/shared/resources/primefaces-14.0.0-jakarta.jar \
     && cp /tmp/server.xml /home/usuario/wlp/usr/servers/cafefe/server.xml \
     && rm /tmp/server.xml
 
